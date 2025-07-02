@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EV Battery Swapping Station</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f4f4; }
+    header { background: #003366; color: white; padding: 1em; text-align: center; position: relative; }
+    #logo {
+      width: 80px;
+      transition: transform 0.3s, filter 0.3s;
+      cursor: pointer;
+    }
+    #logo:hover {
+      transform: scale(1.1) rotate(5deg);
+      filter: hue-rotate(90deg);
+    }
+    nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem; background: #0055a5; padding: 0.5em; }
+    nav button { padding: 10px 20px; border: none; background: #0078d7; color: white; font-weight: bold; cursor: pointer; border-radius: 5px; }
+    nav button:hover { background: #339cff; }
+    main { max-width: 900px; margin: 2em auto; padding: 2em; background: white; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    footer { text-align: center; padding: 1em; background: #003366; color: white; margin-top: 2em; }
+    img { max-width: 100%; border-radius: 10px; margin-bottom: 1em; }
+    .companies { display: flex; flex-wrap: wrap; gap: 20px;  }
+    .company { width: 100%; height: 315px; }
+    .pros-cons { display: flex; justify-content: space-between; gap: 2rem; flex-wrap: wrap; }
+    .pros-cons > div { flex: 1; min-width: 250px; }
+    #info-submenu { margin: 1em 0; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+    #info-submenu button { background: #eee; color: #003366; border: 1px solid #ccc; padding: 8px 16px; border-radius: 5px; cursor: pointer; }
+    #info-submenu button:hover { background: #ccc; }
+    iframe { border: 0; border-radius: 10px; }
+    #map { height: 400px; width: 100%; border-radius: 10px; margin-top: 10px; }
+    #quiz-container button {
+      display: block; width: 100%; padding: 10px 15px; margin: 8px 0;
+      border: none; background: #0078d7; color: white; font-size: 16px; border-radius: 5px;
+      cursor: pointer; transition: background 0.3s, transform 0.2s;
+    }
+    #quiz-container button:hover { background: #339cff; }
+    #quiz-container button:active { background: #005fa3; transform: scale(0.98); }
+    #quiz-container #nextBtn { background: #28a745; }
+    #quiz-container #nextBtn:hover { background: #45c163; }
+    .pics-container { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+    .pics-container img { width: 250px; height: auto; }
+    .logo{
+        text-align: center;
+         transition: transform 0.3s, filter 0.3s;
+      cursor: pointer;
+    }
+    .logo:hover{
+         transform: scale(1.1) rotate(5deg);
+      filter: hue-rotate(90deg);
+
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img id="logo" src="headlogo.png" alt="EV Battery Swapping Logo" />
+    <h1>EV Battery Swapping Station</h1>
+  </header>
+
+  <nav>
+    <button onclick="loadPage('home')">Home</button>
+    <button onclick="loadPage('info')">Information</button>
+    <button onclick="loadPage('companies')">Companies</button>
+    <button onclick="loadPage('map')">Map</button>
+    <button onclick="loadPage('advantages')">Pros & Cons</button>
+    <button onclick="loadPage('quiz')">Quiz</button>
+  </nav>
+
+  <main id="content">
+    <h2>Welcome to EV Battery Swapping!</h2>
+    <p>Click on the sections above to learn about battery swapping technology, explore companies, advantages, and test your knowledge!</p>
+    <img src="logo.jpg" alt="EV Battery Swapping" text-align="centre" />
+  </main>
+
+  <footer>&copy; 2025 EV Battery Swapping International</footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const content = document.getElementById('content');
+    let mapInstance, markers = [];
+
+    const stations = {
+      Pune: [
+        { lat: 18.5204, lng: 73.8567, name: "Pune Station 1" },
+        { lat: 18.5312, lng: 73.8446, name: "Pune Station 2" }
+      ],
+      Mumbai: [
+        { lat: 19.0760, lng: 72.8777, name: "Mumbai Station 1" },
+        { lat: 19.0896, lng: 72.8656, name: "Mumbai Station 2" }
+      ],
+      Nagpur: [
+        { lat: 21.1458, lng: 79.0882, name: "Nagpur Station 1" },
+        { lat: 21.1590, lng: 79.0942, name: "Nagpur Station 2" }
+      ]
+    };
+
+    const pages = {
+      home: `
+        <h2>Welcome to EV Battery Swapping!</h2>
+        <p>Click on the sections above to learn about battery swapping technology, explore companies, advantages, and test your knowledge!</p>
+        <div class="logo">
+        <img src="logo.jpg" alt="EV Battery Swapping" text-align="centre"/>
+        </div>
+      `,
+      info: `
+        <h2>EV Battery Swapping - Learn More</h2>
+        <nav id="info-submenu">
+          <button onclick="loadInfoSubPage('text')">Info</button>
+          <button onclick="loadInfoSubPage('pics')">Pics</button>
+          <button onclick="loadInfoSubPage('videos')">Videos</button>
+        </nav>
+        <div id="info-content">
+          <h3>What is Battery Swapping?</h3>
+          <p>Battery swapping allows electric vehicle users to replace a discharged battery with a fully charged one within minutes.</p>
+        </div>
+      `,
+      companies: `
+        <h2>Manufacturing Companies</h2>
+         <ul>
+            <li>🔋 Exide Industries - Leading automotive battery maker</li>
+            <li>🔋 Amara Raja - Amaron EV batteries</li>
+            <li>🔋 Ola Electric - EV innovation & battery tech</li>
+            <li>🔋 Sun Mobility - Battery swap stations</li>
+            <li>🔋 Hero Electric - E-scooter battery production</li>
+          </ul>
+        <div class="companies">
+          <div class="company">
+            <img src="NIO.webp" alt="NIO" width="100%" height="315" />
+            <p>NIO - China</p>
+          </div>
+          <div class="company">
+            <img src="https://content.jdmagicbox.com/comp/khammam/76/9999pmulmumstd22376/catalogue/venkata-ramana-automobiles-khammam-ho-khammam-motorcycle-dealers-bs5sf4mdj0.jpg" alt="bajaj" width="100%" height="315"/>
+            <p>Bajaj - India</p>
+          </div>
+        </div>
+      `,
+      map: `
+        <h2>Battery Swapping Station Locations</h2>
+        <label>Filter by City:
+          <select id="cityFilter" onchange="filterByCity()">
+            <option value="all">All Cities</option>
+            <option value="Pune">Pune</option>
+            <option value="Mumbai">Mumbai</option>
+            <option value="Nagpur">Nagpur</option>
+          </select>
+        </label>
+        <div id="map"></div>
+        <p id="stationCount"></p>
+      `,
+      advantages: `
+        <h2>Advantages & Disadvantages</h2>
+        <div class="pros-cons">
+          <div>
+            <h3>Advantages</h3>
+            <ul>
+              <li>Quick battery replacement</li>
+              <li>Reduces charging infrastructure demand</li>
+              <li>Fleet efficiency improvement</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Disadvantages</h3>
+            <ul>
+              <li>High setup cost</li>
+              <li>Battery standardization issues</li>
+              <li>Limited availability</li>
+            </ul>
+          </div>
+        </div>
+      `,
+      quiz: `
+        <h2>EV Quiz</h2>
+        <div id="quiz-container">
+          <p id="question">Loading...</p>
+          <div id="options"></div>
+          <button id="nextBtn" onclick="nextQuestion()">Next</button>
+          <p id="score">Score: 0</p>
+        </div>
+      `
+    };
+
+    function loadPage(page) {
+      content.innerHTML = pages[page];
+      if (page === 'map') initMap();
+      if (page === 'quiz') loadQuiz();
+    }
+
+    function initMap() {
+      if (mapInstance) {
+        mapInstance.remove();
+        markers = [];
+      }
+      mapInstance = L.map('map').setView([19.7515, 75.7139], 5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(mapInstance);
+      showStations('all');
+    }
+
+    function filterByCity() {
+      const city = document.getElementById('cityFilter').value;
+      showStations(city);
+    }
+
+    function showStations(city) {
+      markers.forEach(m => mapInstance.removeLayer(m));
+      markers = [];
+      let count = 0;
+      if (city === 'all') {
+        Object.keys(stations).forEach(c => {
+          stations[c].forEach(s => {
+            const marker = L.marker([s.lat, s.lng]).addTo(mapInstance).bindPopup(s.name);
+            markers.push(marker);
+            count++;
+          });
+        });
+        mapInstance.setView([19.7515, 75.7139], 5);
+      } else {
+        stations[city].forEach(s => {
+          const marker = L.marker([s.lat, s.lng]).addTo(mapInstance).bindPopup(s.name);
+          markers.push(marker);
+          count++;
+        });
+        const coords = { Pune: [18.5204, 73.8567], Mumbai: [19.0760, 72.8777], Nagpur: [21.1458, 79.0882] };
+        mapInstance.setView(coords[city], 12);
+      }
+      document.getElementById('stationCount').textContent = `Total Stations: ${count}`;
+    }
+
+    function loadInfoSubPage(type) {
+      const contentDiv = document.getElementById("info-content");
+      if (!contentDiv) return;
+      const contentMap = {
+        text: `<h3>What is Battery Swapping?</h3><p>Battery swapping allows EV users to replace a discharged battery with a charged one in minutes. It's ideal for fleet vehicles and two-wheelers in high-traffic areas.<br>
+            <br>⚡ EV Battery Swapping<br>
+1️⃣ Quick Replacement – Swap empty batteries with charged ones in 2-5 minutes.<br>
+
+2️⃣ No Waiting for Charging – Keeps vehicles moving without long charging breaks.<br>
+
+3️⃣ Ideal for Fleets – Useful for taxis, delivery bikes, and rickshaws to reduce downtime.<br>
+
+4️⃣ Supports Sustainability – Encourages EV use and reduces pollution in cities.</p>`,
+        pics: `<h3>Images of Battery Swapping Stations</h3><div class="pics-container"><img src="carSwap.jpg" alt="EV Swapping 1" /><br><img src="batteryswap.jpg" alt="EV Swapping 2" /></div>`,
+        videos: `<h3>Battery Swapping in Action</h3><iframe width="100%" height="315" src="https://www.youtube.com/embed/TCf_xgWC1tE" frameborder="0" allowfullscreen></iframe><iframe width="100%" height="315" src="https://www.youtube.com/watch?v=cx1-3S2riyE" frameborder="0" allowfullscreen></iframe>`
+      };
+      contentDiv.innerHTML = contentMap[type] || "<p>Content not found.</p>";
+    }
+
+    const quizData = [
+      { question: "What is battery swapping?", options: ["Wireless charging", "Replacing battery with charged one", "Converting fuel cars", "Selling battery"], answer: 1 },
+      { question: "Which company is known for swapping?", options: ["Tesla", "Ford", "NIO", "Toyota"], answer: 2 },
+      { question: "One drawback of battery swapping?", options: ["Too slow", "High infrastructure cost", "No standard battery", "Both B and C"], answer: 3 }
+    ];
+    let currentQuestion = 0, score = 0;
+
+    function loadQuiz() { currentQuestion = 0; score = 0; displayQuestion(); }
+    function displayQuestion() {
+      const q = quizData[currentQuestion];
+      document.getElementById("question").innerText = q.question;
+      const optionsDiv = document.getElementById("options");
+      optionsDiv.innerHTML = "";
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement("button");
+        btn.textContent = opt;
+        btn.onclick = () => checkAnswer(i);
+        optionsDiv.appendChild(btn);
+      });
+      document.getElementById("score").innerText = `Score: ${score}`;
+    }
+    function checkAnswer(index) {
+      if (index === quizData[currentQuestion].answer) score++;
+      currentQuestion++;
+      if (currentQuestion < quizData.length) displayQuestion();
+      else {
+        document.getElementById("question").innerText = "Quiz Complete!";
+        document.getElementById("options").innerHTML = "";
+        document.getElementById("score").innerText = `Final Score: ${score} / ${quizData.length}`;
+      }
+    }
+    function nextQuestion() { if (currentQuestion < quizData.length) displayQuestion(); }
+  </script>
+</body>
+</html>
